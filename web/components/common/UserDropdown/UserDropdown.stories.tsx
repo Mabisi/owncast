@@ -1,9 +1,13 @@
 import { useEffect } from 'react';
-import { StoryFn, Meta } from '@storybook/react';
-import { RecoilRoot, useSetRecoilState } from 'recoil';
+import { StoryFn, Meta } from '@storybook/nextjs';
+import { Provider, useSetAtom } from 'jotai';
 import { UserDropdown } from './UserDropdown';
-import { CurrentUser } from '../../../interfaces/current-user';
-import { currentUserAtom } from '../../stores/ClientConfigStore';
+import {
+  currentUserAtom,
+  appStateAtom,
+  chatStateAtom,
+  ChatState,
+} from '../../stores/ClientConfigStore';
 
 const meta = {
   title: 'owncast/Components/User settings menu',
@@ -13,28 +17,37 @@ const meta = {
 
 export default meta;
 
-// This component uses Recoil internally so wrap it in a RecoilRoot.
+// This component reads jotai atoms internally so wrap it in a Provider.
 const Example = args => {
-  const setCurrentUser = useSetRecoilState<CurrentUser>(currentUserAtom);
+  const setCurrentUser = useSetAtom(currentUserAtom);
+  const setAppState = useSetAtom(appStateAtom);
+  const setChatState = useSetAtom(chatStateAtom);
 
-  useEffect(
-    () =>
-      setCurrentUser({
-        id: '1',
-        displayName: 'Test User',
-        displayColor: 3,
-        isModerator: false,
-      }),
-    [],
-  );
+  useEffect(() => {
+    setCurrentUser({
+      id: '1',
+      displayName: 'Test User',
+      displayColor: 3,
+      isModerator: false,
+    });
+
+    setAppState({
+      chatAvailable: true,
+      chatLoading: false,
+      videoAvailable: true,
+      appLoading: false,
+    });
+
+    setChatState(ChatState.VISIBLE);
+  }, []);
 
   return <UserDropdown id="user-menu" {...args} />;
 };
 
 const Template: StoryFn<typeof UserDropdown> = args => (
-  <RecoilRoot>
+  <Provider>
     <Example {...args} />
-  </RecoilRoot>
+  </Provider>
 );
 
 export const ChatEnabled = {

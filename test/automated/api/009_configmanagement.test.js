@@ -1,5 +1,6 @@
 var request = require('supertest');
 var bcrypt = require('bcrypt');
+var shajs = require('sha.js');
 
 const sendAdminRequest = require('./lib/admin').sendAdminRequest;
 const failAdminRequest = require('./lib/admin').failAdminRequest;
@@ -33,6 +34,7 @@ const defaultFederationConfig = {
 	enabled: false,
 	isPrivate: false,
 	showEngagement: true,
+	hideFollowersTab: false,
 	goLiveMessage: "I've gone live!",
 	username: 'streamer',
 	blockedDomains: [],
@@ -60,7 +62,7 @@ const defaultPageContent = `<h1>Welcome to Owncast!</h1>
 <p>This is a live stream powered by <a href="https://owncast.online">Owncast</a>, a free and open source live streaming server.</p>
 </li>
 <li>
-<p>To discover more examples of streams, visit <a href="https://directory.owncast.online">Owncast's directory</a>.</p>
+<p>To discover more examples of streams, visit <a href="https://owncast.directory">Owncast's directory</a>.</p>
 </li>
 <li>
 <p>If you're the owner of this server you should visit the admin and customize the content on this page.</p>
@@ -129,6 +131,7 @@ const newFederationConfig = {
 	username: randomString(),
 	goLiveMessage: randomString(),
 	showEngagement: !defaultFederationConfig.showEngagement,
+	hideFollowersTab: !defaultFederationConfig.hideFollowersTab,
 	blockedDomains: [randomString() + '.tld', randomString() + '.tld'],
 };
 
@@ -158,7 +161,7 @@ test('verify default admin configuration', async () => {
 	expect(res.body.instanceDetails.offlineMessage).toBe(defaultOfflineMessage);
 	expect(res.body.instanceDetails.tags).toStrictEqual(defaultTags);
 	expect(res.body.instanceDetails.socialHandles).toStrictEqual(
-		defaultSocialHandlesAdmin
+		defaultSocialHandlesAdmin,
 	);
 	expect(res.body.forbiddenUsernames).toStrictEqual(defaultForbiddenUsernames);
 	expect(res.body.streamKeys).toStrictEqual(defaultStreamKeys);
@@ -171,7 +174,7 @@ test('verify default admin configuration', async () => {
 		res.body.adminPassword,
 		function (err, result) {
 			expect(result).toBe(true);
-		}
+		},
 	);
 
 	expect(res.body.s3.enabled).toBe(defaultS3Config.enabled);
@@ -182,13 +185,16 @@ test('verify default admin configuration', async () => {
 	expect(res.body.federation.username).toBe(defaultFederationConfig.username);
 	expect(res.body.federation.isPrivate).toBe(defaultFederationConfig.isPrivate);
 	expect(res.body.federation.showEngagement).toBe(
-		defaultFederationConfig.showEngagement
+		defaultFederationConfig.showEngagement,
+	);
+	expect(res.body.federation.hideFollowersTab).toBe(
+		defaultFederationConfig.hideFollowersTab,
 	);
 	expect(res.body.federation.goLiveMessage).toBe(
-		defaultFederationConfig.goLiveMessage
+		defaultFederationConfig.goLiveMessage,
 	);
 	expect(res.body.federation.blockedDomains).toStrictEqual(
-		defaultFederationConfig.blockedDomains
+		defaultFederationConfig.blockedDomains,
 	);
 });
 
@@ -247,7 +253,7 @@ test('set s3 configuration', async () => {
 test('set forbidden usernames', async () => {
 	await sendAdminRequest(
 		'config/chat/forbiddenusernames',
-		newForbiddenUsernames
+		newForbiddenUsernames,
 	);
 });
 
@@ -259,35 +265,42 @@ test('set server url', async () => {
 test('set federation username', async () => {
 	await sendAdminRequest(
 		'config/federation/username',
-		newFederationConfig.username
+		newFederationConfig.username,
 	);
 });
 
 test('set federation goLiveMessage', async () => {
 	await sendAdminRequest(
 		'config/federation/livemessage',
-		newFederationConfig.goLiveMessage
+		newFederationConfig.goLiveMessage,
 	);
 });
 
 test('toggle private federation mode', async () => {
 	await sendAdminRequest(
 		'config/federation/private',
-		newFederationConfig.isPrivate
+		newFederationConfig.isPrivate,
 	);
 });
 
 test('toggle federation engagement', async () => {
 	const res = await sendAdminRequest(
 		'config/federation/showengagement',
-		newFederationConfig.showEngagement
+		newFederationConfig.showEngagement,
+	);
+});
+
+test('toggle federation hide followers tab', async () => {
+	await sendAdminRequest(
+		'config/federation/hidefollowers',
+		newFederationConfig.hideFollowersTab,
 	);
 });
 
 test('set federation blocked domains', async () => {
 	await sendAdminRequest(
 		'config/federation/blockdomains',
-		newFederationConfig.blockedDomains
+		newFederationConfig.blockedDomains,
 	);
 });
 
@@ -318,15 +331,33 @@ test('enable directory', async () => {
 test('enable federation', async () => {
 	await sendAdminRequest(
 		'config/federation/enable',
-		newFederationConfig.enabled
+		newFederationConfig.enabled,
 	);
 });
 
 test('disable search indexing', async () => {
 	await sendAdminRequest(
 		'config/disablesearchindexing',
-		newDisableSearchIndexing
+		newDisableSearchIndexing,
 	);
+});
+
+test('set chat require authentication enabled', async () => {
+	await sendAdminRequest('config/chat/requireauthentication', true);
+});
+
+test('verify chat require authentication is enabled in config', async () => {
+	const res = await getAdminResponse('serverconfig');
+	expect(res.body.chatRequireAuthentication).toBe(true);
+});
+
+test('set chat require authentication disabled', async () => {
+	await sendAdminRequest('config/chat/requireauthentication', false);
+});
+
+test('verify chat require authentication is disabled in config', async () => {
+	const res = await getAdminResponse('serverconfig');
+	expect(res.body.chatRequireAuthentication).toBe(false);
 });
 
 test('change admin password', async () => {
@@ -336,7 +367,7 @@ test('change admin password', async () => {
 test('verify admin password change', async () => {
 	const res = await getAdminResponse(
 		'serverconfig',
-		(adminPassword = newAdminPassword)
+		(adminPassword = newAdminPassword),
 	);
 
 	bcrypt.compare(
@@ -344,7 +375,7 @@ test('verify admin password change', async () => {
 		res.body.adminPassword,
 		function (err, result) {
 			expect(result).toBe(true);
-		}
+		},
 	);
 });
 
@@ -352,7 +383,36 @@ test('reset admin password', async () => {
 	await sendAdminRequest(
 		'config/adminpass',
 		defaultAdminPassword,
-		(adminPassword = newAdminPassword)
+		(adminPassword = newAdminPassword),
+	);
+});
+
+let newAdminPasswordLong = randomString(80);
+
+test('change admin password >72 bytes', async () => {
+	await sendAdminRequest('config/adminpass', newAdminPasswordLong);
+});
+
+test('verify admin password change (>72 bytes)', async () => {
+	const res = await getAdminResponse(
+		'serverconfig',
+		(adminPassword = newAdminPasswordLong),
+	);
+
+	bcrypt.compare(
+		shajs('SHA512').update(newAdminPasswordLong).digest(),
+		res.body.adminPassword,
+		function (err, result) {
+			expect(result).toBe(true);
+		},
+	);
+});
+
+test('reset admin password (>72)', async () => {
+	await sendAdminRequest(
+		'config/adminpass',
+		defaultAdminPassword,
+		(adminPassword = newAdminPasswordLong),
 	);
 });
 
@@ -394,7 +454,7 @@ test('verify updated admin configuration', async () => {
 	expect(res.body.instanceDetails.offlineMessage).toBe(newOfflineMessage);
 	expect(res.body.instanceDetails.tags).toStrictEqual(newTags);
 	expect(res.body.instanceDetails.socialHandles).toStrictEqual(
-		newSocialHandles
+		newSocialHandles,
 	);
 	expect(res.body.instanceDetails.customStyles).toBe(customCSS);
 	expect(res.body.instanceDetails.customJavascript).toBe(customJavascript);
@@ -405,10 +465,10 @@ test('verify updated admin configuration', async () => {
 
 	expect(res.body.videoSettings.latencyLevel).toBe(latencyLevel);
 	expect(res.body.videoSettings.videoQualityVariants[0].framerate).toBe(
-		streamOutputVariants.framerate
+		streamOutputVariants.framerate,
 	);
 	expect(res.body.videoSettings.videoQualityVariants[0].cpuUsageLevel).toBe(
-		streamOutputVariants.cpuUsageLevel
+		streamOutputVariants.cpuUsageLevel,
 	);
 
 	expect(res.body.yp.enabled).toBe(newYPConfig.enabled);
@@ -419,7 +479,7 @@ test('verify updated admin configuration', async () => {
 		res.body.adminPassword,
 		function (err, result) {
 			expect(result).toBe(true);
-		}
+		},
 	);
 
 	expect(res.body.s3.enabled).toBe(newS3Config.enabled);
@@ -435,13 +495,16 @@ test('verify updated admin configuration', async () => {
 	expect(res.body.federation.isPrivate).toBe(newFederationConfig.isPrivate);
 	expect(res.body.federation.username).toBe(newFederationConfig.username);
 	expect(res.body.federation.goLiveMessage).toBe(
-		newFederationConfig.goLiveMessage
+		newFederationConfig.goLiveMessage,
 	);
 	expect(res.body.federation.showEngagement).toBe(
-		newFederationConfig.showEngagement
+		newFederationConfig.showEngagement,
+	);
+	expect(res.body.federation.hideFollowersTab).toBe(
+		newFederationConfig.hideFollowersTab,
 	);
 	expect(res.body.federation.blockedDomains).toStrictEqual(
-		newFederationConfig.blockedDomains
+		newFederationConfig.blockedDomains,
 	);
 });
 
@@ -453,6 +516,9 @@ test('verify updated frontend configuration', async () => {
 			expect(res.body.name).toBe(newServerName);
 			expect(res.body.logo).toBe('/logo');
 			expect(res.body.socialHandles).toStrictEqual(newSocialHandles);
+			expect(res.body.federation.hideFollowersTab).toBe(
+				newFederationConfig.hideFollowersTab,
+			);
 		});
 });
 

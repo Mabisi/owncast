@@ -1,0 +1,31 @@
+.streamsContainer {
+  padding: 20px;
+  min-height: 400px;
+}
+
+.streamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 350px));
+  gap: 16px;
+}
+
+.loadingContainer,
+.errorContainer,
+.emptyContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 40px;
+}
+
+.errorContainer {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (width <= 768px) {
+  .streamsContainer {
+    padding: 12px;
+  }
+}

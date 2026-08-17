@@ -8,14 +8,13 @@ import (
 
 	"github.com/owncast/owncast/config"
 	"github.com/owncast/owncast/models"
-	"github.com/owncast/owncast/persistence/userrepository"
 	"github.com/owncast/owncast/utils"
 	"github.com/owncast/owncast/webserver/handlers/generated"
 	webutils "github.com/owncast/owncast/webserver/utils"
 )
 
 // CreateExternalAPIUser will generate a 3rd party access token.
-func CreateExternalAPIUser(w http.ResponseWriter, r *http.Request) {
+func (a *Admin) CreateExternalAPIUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var request generated.CreateExternalAPIUserJSONBody
 	if err := decoder.Decode(&request); err != nil {
@@ -23,10 +22,18 @@ func CreateExternalAPIUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRepository := userrepository.Get()
+	if request.Scopes == nil {
+		webutils.BadRequestHandler(w, errors.New("scopes field is required"))
+		return
+	}
+
+	if request.Name == nil {
+		webutils.BadRequestHandler(w, errors.New("name field is required"))
+		return
+	}
 
 	// Verify all the scopes provided are valid
-	if !userRepository.HasValidScopes(*request.Scopes) {
+	if !a.userRepository.HasValidScopes(*request.Scopes) {
 		webutils.BadRequestHandler(w, errors.New("one or more invalid scopes provided"))
 		return
 	}
@@ -39,7 +46,7 @@ func CreateExternalAPIUser(w http.ResponseWriter, r *http.Request) {
 
 	color := utils.GenerateRandomDisplayColor(config.MaxUserColor)
 
-	if err := userRepository.InsertExternalAPIUser(token, *request.Name, color, *request.Scopes); err != nil {
+	if err := a.userRepository.InsertExternalAPIUser(token, *request.Name, color, *request.Scopes); err != nil {
 		webutils.InternalErrorHandler(w, err)
 		return
 	}
@@ -56,12 +63,10 @@ func CreateExternalAPIUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetExternalAPIUsers will return all 3rd party access tokens.
-func GetExternalAPIUsers(w http.ResponseWriter, r *http.Request) {
+func (a *Admin) GetExternalAPIUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userRepository := userrepository.Get()
-
-	tokens, err := userRepository.GetExternalAPIUser()
+	tokens, err := a.userRepository.GetExternalAPIUser()
 	if err != nil {
 		webutils.InternalErrorHandler(w, err)
 		return
@@ -70,7 +75,7 @@ func GetExternalAPIUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteExternalAPIUser will return a single 3rd party access token.
-func DeleteExternalAPIUser(w http.ResponseWriter, r *http.Request) {
+func (a *Admin) DeleteExternalAPIUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -85,14 +90,17 @@ func DeleteExternalAPIUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if request.Token != nil && *request.Token == "" {
+	if request.Token == nil {
+		webutils.BadRequestHandler(w, errors.New("token field is required"))
+		return
+	}
+
+	if *request.Token == "" {
 		webutils.BadRequestHandler(w, errors.New("must provide a token"))
 		return
 	}
 
-	userRepository := userrepository.Get()
-
-	if err := userRepository.DeleteExternalAPIUser(*request.Token); err != nil {
+	if err := a.userRepository.DeleteExternalAPIUser(*request.Token); err != nil {
 		webutils.InternalErrorHandler(w, err)
 		return
 	}

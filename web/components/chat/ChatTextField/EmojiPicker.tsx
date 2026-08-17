@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
@@ -39,6 +39,12 @@ export const EmojiPicker: FC<EmojiPickerProps> = ({ onEmojiSelect, customEmoji }
   }, []);
 
   return (
-    <Picker data={data} custom={custom} onEmojiSelect={onEmojiSelect} categories={categories} />
+    <Picker
+      data={data}
+      custom={custom}
+      onEmojiSelect={onEmojiSelect}
+      categories={categories}
+      dynamicWidth
+    />
   );
 };

@@ -8,16 +8,13 @@
   background-color: var(--theme-color-palette-1);
 }
 
+/* The sider menu runs antd's dark theme; its colors come from the Menu
+   design tokens in components/theme/AntdProvider.tsx (dark item colors,
+   transparent backgrounds, the selected-item edge bar). Only the menu
+   root background is cleared here so the sider color shows through. */
 .app-container .menu-container {
   border-color: transparent;
   background-color: unset;
-  color: var(--theme-color-components-text-on-dark);
-}
-
-.app-container .menu-container .ant-menu-item-selected:not(.ant-menu-item-only-child),
-.ant-menu-item a:hover,
-.ant-menu-item a::before {
-  color: var(--theme-color-palette-12);
 }
 
 .app-container h1.owncast-title {
@@ -86,7 +83,6 @@
 }
 
 .app-container .online-status-indicator .status-label {
-  color: var(--theme-color-palette-4);
   text-transform: uppercase;
   font-size: 0.75rem;
   display: inline-block;
@@ -121,7 +117,9 @@
   align-items: center;
   width: 100%;
   padding-top: 1em;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 10%),
+    0 1px 2px -1px rgb(0 0 0 / 10%);
 }
 
 .global-stream-title-container ::placeholder {
@@ -137,11 +135,11 @@
 
 .global-stream-title-container .textfield-with-submit-container .input-side {
   width: 400px;
-  border: 1px solid rgba(120, 113, 255, 0.5);
+  border: 1px solid rgb(120 113 255 / 50%);
   border-radius: 0.75rem;
 }
 
-@media (max-width: 800px) {
+@media (width <= 800px) {
   .global-stream-title-container .textfield-with-submit-container .input-side {
     width: auto;
   }
@@ -180,16 +178,12 @@
   line-height: 1;
 }
 
-.ant-select:not(.ant-select-customize-input) .ant-select-selector {
-  background-color: var(--theme-color-components-form-field-background);
-}
-
-.ant-menu-item a,
-.ant-menu-submenu-expand-icon,
-.ant-menu-submenu-arrow {
-  color: unset;
-}
-
-.ant-modal-title {
-  color: var(--theme-color-components-modal-header-text);
+/* Custom upgrade menu divider - partial width */
+.menu-container .ant-menu-item-divider,
+.menu-container li.ant-menu-item-divider,
+.menu-container .ant-menu-inline .ant-menu-item-divider {
+  margin: 8px 16px !important;
+  width: calc(100% - 32px) !important;
+  background-color: rgb(255 255 255 / 20%) !important;
+  box-sizing: border-box !important;
 }
